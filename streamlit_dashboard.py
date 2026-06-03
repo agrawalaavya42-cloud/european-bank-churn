@@ -417,7 +417,7 @@ def color_churn(val):
     else:           return 'background-color: #21c35433; color: #21c354'
 
 st.dataframe(
-    seg_table.style.applymap(color_churn, subset=['ChurnRate%']),
+    seg_table.style.map(color_churn, subset=['ChurnRate%']),
     use_container_width=True,
     height=400
 )
