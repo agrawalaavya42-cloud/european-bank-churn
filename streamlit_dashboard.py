@@ -399,3 +399,5 @@ with tab6:
 # ── FOOTER ────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown("<div style='text-align:center; color:#555; font-size:13px;'>🏦 Customer Segmentation & Churn Pattern Analytics in European Banking &nbsp;|&nbsp; Unified Mentor Internship &nbsp;|&nbsp; Model: Gradient Boosting 86.8% Accuracy</div>", unsafe_allow_html=True)
+
+
