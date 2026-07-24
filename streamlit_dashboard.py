@@ -54,22 +54,25 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.preprocessing import StandardScaler, LabelEncoder
-    df_train = pd.read_csv("European_Bank.csv")
-    df_train = df_train.drop(columns=['CustomerId','Surname','Year'], errors='ignore')
-    le = LabelEncoder()
-    df_train['Geography_enc'] = le.fit_transform(df_train['Geography'])
-    df_train['Gender_enc']    = le.fit_transform(df_train['Gender'])
-    features = ['CreditScore','Geography_enc','Gender_enc','Age','Tenure',
-                'Balance','NumOfProducts','HasCrCard','IsActiveMember','EstimatedSalary']
-    X = df_train[features]
-    y = df_train['Exited']
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    model = LogisticRegression(max_iter=1000, random_state=42)
-    model.fit(X_scaled, y)
-    return model, scaler
+    try:
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.preprocessing import StandardScaler, LabelEncoder
+        df_train = pd.read_csv("European_Bank.csv")
+        df_train = df_train.drop(columns=['CustomerId','Surname','Year'], errors='ignore')
+        le = LabelEncoder()
+        df_train['Geography_enc'] = le.fit_transform(df_train['Geography'])
+        df_train['Gender_enc']    = le.fit_transform(df_train['Gender'])
+        features = ['CreditScore','Geography_enc','Gender_enc','Age','Tenure',
+                    'Balance','NumOfProducts','HasCrCard','IsActiveMember','EstimatedSalary']
+        X = df_train[features]
+        y = df_train['Exited']
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        model = LogisticRegression(max_iter=1000, random_state=42)
+        model.fit(X_scaled, y)
+        return model, scaler
+    except Exception:
+        return None, None
 
 df = load_data()
 
@@ -288,93 +291,93 @@ with tab5:
     st.dataframe(seg_table, use_container_width=True, height=400)
 
 with tab6:
-    # ── Model loads ONLY when this tab is clicked ──
     model, scaler = load_model()
-
     st.markdown('<div class="section-header">🤖 AI-Powered Churn Predictor</div>', unsafe_allow_html=True)
-    st.markdown("Enter a customer's details below to instantly predict their churn risk using our **ML classification model**.")
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("**📋 Personal Details**")
-        age          = st.slider("Age", 18, 92, 40)
-        gender       = st.selectbox("Gender", ["Male", "Female"])
-        geography    = st.selectbox("Country", ["France", "Germany", "Spain"])
-        credit_score = st.slider("Credit Score", 350, 850, 650)
+    if model is None:
+        st.warning("⚠️ ML model is currently unavailable on this server. The full model results (86.8% accuracy, ROC-AUC 86.7%) are documented in the research paper and Colab notebook.")
+        st.info("📊 Model training and evaluation was performed in Google Colab. See the attached research paper for full ML results including confusion matrix, feature importance, and classification report.")
+    else:
+        st.markdown("Enter a customer's details below to instantly predict their churn risk using our **ML classification model**.")
 
-    with col2:
-        st.markdown("**💰 Financial Profile**")
-        balance          = st.number_input("Account Balance (€)", 0, 300000, 50000, step=1000)
-        estimated_salary = st.number_input("Estimated Salary (€)", 0, 300000, 80000, step=1000)
-        num_products     = st.selectbox("Number of Products", [1, 2, 3, 4])
-        has_cr_card      = st.selectbox("Has Credit Card?", ["Yes", "No"])
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("**📋 Personal Details**")
+            age          = st.slider("Age", 18, 92, 40)
+            gender       = st.selectbox("Gender", ["Male", "Female"])
+            geography    = st.selectbox("Country", ["France", "Germany", "Spain"])
+            credit_score = st.slider("Credit Score", 350, 850, 650)
 
-    with col3:
-        st.markdown("**🏦 Engagement**")
-        tenure    = st.slider("Tenure (years)", 0, 10, 5)
-        is_active = st.selectbox("Active Member?", ["Yes", "No"])
-        st.markdown("<br>", unsafe_allow_html=True)
+        with col2:
+            st.markdown("**💰 Financial Profile**")
+            balance          = st.number_input("Account Balance (€)", 0, 300000, 50000, step=1000)
+            estimated_salary = st.number_input("Estimated Salary (€)", 0, 300000, 80000, step=1000)
+            num_products     = st.selectbox("Number of Products", [1, 2, 3, 4])
+            has_cr_card      = st.selectbox("Has Credit Card?", ["Yes", "No"])
 
-        if st.button("🔮 Predict Churn Risk", use_container_width=True):
-            geo_map    = {'France': 0, 'Germany': 1, 'Spain': 2}
-            gender_map = {'Female': 0, 'Male': 1}
+        with col3:
+            st.markdown("**🏦 Engagement**")
+            tenure    = st.slider("Tenure (years)", 0, 10, 5)
+            is_active = st.selectbox("Active Member?", ["Yes", "No"])
+            st.markdown("<br>", unsafe_allow_html=True)
 
-            input_data = np.array([[
-                credit_score, geo_map[geography], gender_map[gender],
-                age, tenure, balance, num_products,
-                1 if has_cr_card == "Yes" else 0,
-                1 if is_active   == "Yes" else 0,
-                estimated_salary
-            ]])
+            if st.button("🔮 Predict Churn Risk", use_container_width=True):
+                geo_map    = {'France': 0, 'Germany': 1, 'Spain': 2}
+                gender_map = {'Female': 0, 'Male': 1}
+                input_data = np.array([[
+                    credit_score, geo_map[geography], gender_map[gender],
+                    age, tenure, balance, num_products,
+                    1 if has_cr_card == "Yes" else 0,
+                    1 if is_active   == "Yes" else 0,
+                    estimated_salary
+                ]])
+                input_scaled = scaler.transform(input_data)
+                prob         = model.predict_proba(input_scaled)[0][1] * 100
+                prediction   = model.predict(input_scaled)[0]
 
-            input_scaled = scaler.transform(input_data)
-            prob         = model.predict_proba(input_scaled)[0][1] * 100
-            prediction   = model.predict(input_scaled)[0]
+                st.markdown("---")
+                st.markdown("### 📊 Prediction Result")
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if prediction == 1:
+                        st.markdown(f'<div class="risk-high">⚠️ HIGH CHURN RISK<br><span style="font-size:32px">{prob:.1f}%</span><br>probability of churning</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="risk-low">✅ LOW CHURN RISK<br><span style="font-size:32px">{prob:.1f}%</span><br>probability of churning</div>', unsafe_allow_html=True)
 
-            st.markdown("---")
-            st.markdown("### 📊 Prediction Result")
+                with col_b:
+                    fig_gauge = go.Figure(go.Indicator(
+                        mode="gauge+number", value=prob,
+                        number={'suffix': '%', 'font': {'size': 28, 'color': 'white'}},
+                        gauge={
+                            'axis': {'range': [0, 100], 'tickcolor': '#c8d0f0'},
+                            'bar': {'color': '#FF4B4B' if prob > 50 else '#21C354'},
+                            'steps': [
+                                {'range': [0, 30],   'color': '#21c35422'},
+                                {'range': [30, 60],  'color': '#ffa62b22'},
+                                {'range': [60, 100], 'color': '#ff4b4b22'},
+                            ],
+                            'threshold': {'line': {'color': 'white', 'width': 2}, 'value': 50}
+                        }
+                    ))
+                    fig_gauge.update_layout(height=220, margin=dict(t=20,b=0,l=20,r=20), **PLOT_THEME)
+                    st.plotly_chart(fig_gauge, use_container_width=True)
 
-            col_a, col_b = st.columns(2)
-            with col_a:
-                if prediction == 1:
-                    st.markdown(f'<div class="risk-high">⚠️ HIGH CHURN RISK<br><span style="font-size:32px">{prob:.1f}%</span><br>probability of churning</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="risk-low">✅ LOW CHURN RISK<br><span style="font-size:32px">{prob:.1f}%</span><br>probability of churning</div>', unsafe_allow_html=True)
-
-            with col_b:
-                fig_gauge = go.Figure(go.Indicator(
-                    mode="gauge+number", value=prob,
-                    number={'suffix': '%', 'font': {'size': 28, 'color': 'white'}},
-                    gauge={
-                        'axis': {'range': [0, 100], 'tickcolor': '#c8d0f0'},
-                        'bar': {'color': '#FF4B4B' if prob > 50 else '#21C354'},
-                        'steps': [
-                            {'range': [0, 30],   'color': '#21c35422'},
-                            {'range': [30, 60],  'color': '#ffa62b22'},
-                            {'range': [60, 100], 'color': '#ff4b4b22'},
-                        ],
-                        'threshold': {'line': {'color': 'white', 'width': 2}, 'value': 50}
-                    }
-                ))
-                fig_gauge.update_layout(height=220, margin=dict(t=20,b=0,l=20,r=20), **PLOT_THEME)
-                st.plotly_chart(fig_gauge, use_container_width=True)
-
-            st.markdown("### 💡 Retention Recommendations")
-            tips = []
-            if is_active == "No":
-                tips.append("🔔 **Activate membership** — inactive members churn at 26.9% vs 14.3% for active members")
-            if num_products >= 3:
-                tips.append("📦 **Review product holdings** — customers with 3+ products churn at 82–100%")
-            if geography == "Germany":
-                tips.append("🇩🇪 **Germany high-risk market** — apply country-specific retention campaign")
-            if age >= 46 and age <= 60:
-                tips.append("👤 **Age 46–60 high-risk group** — offer premium loyalty benefits")
-            if balance > 50000:
-                tips.append("💎 **High-value customer** — assign dedicated relationship manager")
-            if not tips:
-                tips.append("✅ This customer shows low churn risk — maintain regular engagement")
-            for tip in tips:
-                st.markdown(f"- {tip}")
+                st.markdown("### 💡 Retention Recommendations")
+                tips = []
+                if is_active == "No":
+                    tips.append("🔔 **Activate membership** — inactive members churn at 26.9% vs 14.3% for active members")
+                if num_products >= 3:
+                    tips.append("📦 **Review product holdings** — customers with 3+ products churn at 82–100%")
+                if geography == "Germany":
+                    tips.append("🇩🇪 **Germany high-risk market** — apply country-specific retention campaign")
+                if age >= 46 and age <= 60:
+                    tips.append("👤 **Age 46–60 high-risk group** — offer premium loyalty benefits")
+                if balance > 50000:
+                    tips.append("💎 **High-value customer** — assign dedicated relationship manager")
+                if not tips:
+                    tips.append("✅ This customer shows low churn risk — maintain regular engagement")
+                for tip in tips:
+                    st.markdown(f"- {tip}")
 
 st.markdown("---")
 st.markdown("<div style='text-align:center; color:#555; font-size:13px;'>🏦 Customer Segmentation & Churn Pattern Analytics in European Banking &nbsp;|&nbsp; Unified Mentor Internship &nbsp;|&nbsp; AI-Powered Churn Predictor</div>", unsafe_allow_html=True)
