@@ -56,29 +56,22 @@ def load_data():
 def load_model():
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler, LabelEncoder
-
     df_train = pd.read_csv("European_Bank.csv")
     df_train = df_train.drop(columns=['CustomerId','Surname','Year'], errors='ignore')
-
     le = LabelEncoder()
     df_train['Geography_enc'] = le.fit_transform(df_train['Geography'])
     df_train['Gender_enc']    = le.fit_transform(df_train['Gender'])
-
     features = ['CreditScore','Geography_enc','Gender_enc','Age','Tenure',
                 'Balance','NumOfProducts','HasCrCard','IsActiveMember','EstimatedSalary']
     X = df_train[features]
     y = df_train['Exited']
-
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-
     model = LogisticRegression(max_iter=1000, random_state=42)
     model.fit(X_scaled, y)
-
     return model, scaler
 
 df = load_data()
-model, scaler = load_model()
 
 PLOT_THEME = dict(
     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
@@ -295,11 +288,13 @@ with tab5:
     st.dataframe(seg_table, use_container_width=True, height=400)
 
 with tab6:
+    # ── Model loads ONLY when this tab is clicked ──
+    model, scaler = load_model()
+
     st.markdown('<div class="section-header">🤖 AI-Powered Churn Predictor</div>', unsafe_allow_html=True)
     st.markdown("Enter a customer's details below to instantly predict their churn risk using our **ML classification model**.")
 
     col1, col2, col3 = st.columns(3)
-
     with col1:
         st.markdown("**📋 Personal Details**")
         age          = st.slider("Age", 18, 92, 40)
@@ -318,7 +313,6 @@ with tab6:
         st.markdown("**🏦 Engagement**")
         tenure    = st.slider("Tenure (years)", 0, 10, 5)
         is_active = st.selectbox("Active Member?", ["Yes", "No"])
-
         st.markdown("<br>", unsafe_allow_html=True)
 
         if st.button("🔮 Predict Churn Risk", use_container_width=True):
@@ -326,9 +320,7 @@ with tab6:
             gender_map = {'Female': 0, 'Male': 1}
 
             input_data = np.array([[
-                credit_score,
-                geo_map[geography],
-                gender_map[gender],
+                credit_score, geo_map[geography], gender_map[gender],
                 age, tenure, balance, num_products,
                 1 if has_cr_card == "Yes" else 0,
                 1 if is_active   == "Yes" else 0,
@@ -351,8 +343,7 @@ with tab6:
 
             with col_b:
                 fig_gauge = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=prob,
+                    mode="gauge+number", value=prob,
                     number={'suffix': '%', 'font': {'size': 28, 'color': 'white'}},
                     gauge={
                         'axis': {'range': [0, 100], 'tickcolor': '#c8d0f0'},
