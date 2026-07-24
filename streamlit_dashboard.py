@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import pickle
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -42,7 +41,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── LOAD DATA ────────────────────────────────────────────────
 @st.cache_data
 def load_data():
     df = pd.read_csv("European_Bank.csv")
@@ -56,10 +54,27 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    with open('churn_model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    with open('scaler.pkl', 'rb') as f:
-        scaler = pickle.load(f)
+    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.preprocessing import StandardScaler, LabelEncoder
+    
+    df_train = pd.read_csv("European_Bank.csv")
+    df_train = df_train.drop(columns=['CustomerId','Surname','Year'], errors='ignore')
+    
+    le = LabelEncoder()
+    df_train['Geography_enc'] = le.fit_transform(df_train['Geography'])
+    df_train['Gender_enc']    = le.fit_transform(df_train['Gender'])
+    
+    features = ['CreditScore','Geography_enc','Gender_enc','Age','Tenure',
+                'Balance','NumOfProducts','HasCrCard','IsActiveMember','EstimatedSalary']
+    X = df_train[features]
+    y = df_train['Exited']
+    
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    model = GradientBoostingClassifier(n_estimators=100, random_state=42)
+    model.fit(X_scaled, y)
+    
     return model, scaler
 
 df = load_data()
@@ -74,7 +89,6 @@ PLOT_THEME = dict(
 )
 COLORS = {'churn':'#FF4B4B','retain':'#21C354','blue':'#4B7BFF','orange':'#FF9F40','purple':'#9B59B6','teal':'#1ABC9C'}
 
-# ── SIDEBAR ──────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 🏦 Churn Analytics")
     st.markdown("---")
@@ -87,7 +101,6 @@ with st.sidebar:
     st.markdown("---")
     st.info("**Project:** Customer Segmentation & Churn Analytics\n\n**Model:** Gradient Boosting (86.8% accuracy)\n\n**Source:** Unified Mentor Internship")
 
-# ── FILTER DATA ───────────────────────────────────────────────
 dff = df.copy()
 if selected_geo     != 'All': dff = dff[dff['Geography']      == selected_geo]
 if selected_gender  != 'All': dff = dff[dff['Gender']          == selected_gender]
@@ -95,19 +108,14 @@ if selected_age     != 'All': dff = dff[dff['AgeGroup']        == selected_age]
 if selected_credit  != 'All': dff = dff[dff['CreditBand']      == selected_credit]
 if selected_balance != 'All': dff = dff[dff['BalanceSegment']  == selected_balance]
 
-# ── HEADER ────────────────────────────────────────────────────
 st.markdown('<div class="dashboard-title">🏦 European Bank Churn Analytics</div>', unsafe_allow_html=True)
 st.markdown('<div class="dashboard-subtitle">Customer Segmentation & Churn Pattern Dashboard — Unified Mentor Internship Project</div>', unsafe_allow_html=True)
 
-# ── TABS ──────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊 Overview", "🌍 Geography", "👥 Demographics",
     "💎 High-Value", "📈 Engagement", "🤖 Churn Predictor"
 ])
 
-# ═══════════════════════════════════════════════════════════════
-# TAB 1 — OVERVIEW
-# ═══════════════════════════════════════════════════════════════
 with tab1:
     total      = len(dff)
     churned    = dff['Exited'].sum()
@@ -148,9 +156,6 @@ with tab1:
         fig_geo.update_layout(height=320, coloraxis_showscale=False, margin=dict(t=40,b=0,l=0,r=0), **PLOT_THEME)
         st.plotly_chart(fig_geo, use_container_width=True)
 
-# ═══════════════════════════════════════════════════════════════
-# TAB 2 — GEOGRAPHY
-# ═══════════════════════════════════════════════════════════════
 with tab2:
     st.markdown('<div class="section-header">🌍 Geographic Risk Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="insight-box">💡 <b>Key Insight:</b> Germany\'s 32.4% churn rate is nearly double France and Spain. Country-specific retention strategies are essential — a single blanket approach will under-invest in Germany while wasting resources in lower-risk markets.</div>', unsafe_allow_html=True)
@@ -179,9 +184,6 @@ with tab2:
         fig2.update_layout(height=350, margin=dict(t=40,b=0,l=0,r=0), **PLOT_THEME)
         st.plotly_chart(fig2, use_container_width=True)
 
-# ═══════════════════════════════════════════════════════════════
-# TAB 3 — DEMOGRAPHICS
-# ═══════════════════════════════════════════════════════════════
 with tab3:
     st.markdown('<div class="section-header">👥 Demographic Churn Analysis</div>', unsafe_allow_html=True)
     st.markdown('<div class="insight-box">💡 <b>Key Insight:</b> Female customers churn 52% more than males (25.1% vs 16.5%). The 46–60 age group is the highest-risk demographic at 56%+ churn — more than 2.7x the overall average.</div>', unsafe_allow_html=True)
@@ -226,9 +228,6 @@ with tab3:
     fig4.update_layout(height=320, coloraxis_showscale=False, margin=dict(t=40,b=0,l=0,r=0), **PLOT_THEME)
     st.plotly_chart(fig4, use_container_width=True)
 
-# ═══════════════════════════════════════════════════════════════
-# TAB 4 — HIGH VALUE
-# ═══════════════════════════════════════════════════════════════
 with tab4:
     st.markdown('<div class="section-header">💎 High-Value Customer Churn Explorer</div>', unsafe_allow_html=True)
     st.markdown('<div class="insight-box">💡 <b>Key Insight:</b> High-balance customers (>€50K) churn at 22.6%, placing ~€91.5M in deposits at risk. Churn spans all salary levels — service quality and engagement drive exits more than financial stress.</div>', unsafe_allow_html=True)
@@ -255,9 +254,6 @@ with tab4:
         fig2.update_layout(height=380, coloraxis_showscale=False, margin=dict(t=40,b=0,l=0,r=0), **PLOT_THEME)
         st.plotly_chart(fig2, use_container_width=True)
 
-# ═══════════════════════════════════════════════════════════════
-# TAB 5 — ENGAGEMENT
-# ═══════════════════════════════════════════════════════════════
 with tab5:
     st.markdown('<div class="section-header">📈 Engagement Drop Indicator</div>', unsafe_allow_html=True)
     st.markdown('<div class="insight-box">💡 <b>Key Insight:</b> Inactive members churn at 26.9% vs 14.3% for active members. Customers with 2 products have the lowest churn (7.6%), while 3–4 product holders churn at 82–100% — product overload is a churn trigger.</div>', unsafe_allow_html=True)
@@ -298,9 +294,6 @@ with tab5:
     seg_table = seg_table.sort_values('ChurnRate%', ascending=False)
     st.dataframe(seg_table, use_container_width=True, height=400)
 
-# ═══════════════════════════════════════════════════════════════
-# TAB 6 — CHURN PREDICTOR
-# ═══════════════════════════════════════════════════════════════
 with tab6:
     st.markdown('<div class="section-header">🤖 AI-Powered Churn Predictor</div>', unsafe_allow_html=True)
     st.markdown("Enter a customer's details below to instantly predict their churn risk using our **Gradient Boosting model (86.8% accuracy, ROC-AUC 86.7%)**.")
@@ -309,22 +302,22 @@ with tab6:
 
     with col1:
         st.markdown("**📋 Personal Details**")
-        age         = st.slider("Age", 18, 92, 40)
-        gender      = st.selectbox("Gender", ["Male", "Female"])
-        geography   = st.selectbox("Country", ["France", "Germany", "Spain"])
+        age          = st.slider("Age", 18, 92, 40)
+        gender       = st.selectbox("Gender", ["Male", "Female"])
+        geography    = st.selectbox("Country", ["France", "Germany", "Spain"])
         credit_score = st.slider("Credit Score", 350, 850, 650)
 
     with col2:
         st.markdown("**💰 Financial Profile**")
-        balance         = st.number_input("Account Balance (€)", 0, 300000, 50000, step=1000)
+        balance          = st.number_input("Account Balance (€)", 0, 300000, 50000, step=1000)
         estimated_salary = st.number_input("Estimated Salary (€)", 0, 300000, 80000, step=1000)
-        num_products    = st.selectbox("Number of Products", [1, 2, 3, 4])
-        has_cr_card     = st.selectbox("Has Credit Card?", ["Yes", "No"])
+        num_products     = st.selectbox("Number of Products", [1, 2, 3, 4])
+        has_cr_card      = st.selectbox("Has Credit Card?", ["Yes", "No"])
 
     with col3:
         st.markdown("**🏦 Engagement**")
-        tenure          = st.slider("Tenure (years)", 0, 10, 5)
-        is_active       = st.selectbox("Active Member?", ["Yes", "No"])
+        tenure    = st.slider("Tenure (years)", 0, 10, 5)
+        is_active = st.selectbox("Active Member?", ["Yes", "No"])
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -336,10 +329,7 @@ with tab6:
                 credit_score,
                 geo_map[geography],
                 gender_map[gender],
-                age,
-                tenure,
-                balance,
-                num_products,
+                age, tenure, balance, num_products,
                 1 if has_cr_card == "Yes" else 0,
                 1 if is_active   == "Yes" else 0,
                 estimated_salary
@@ -378,7 +368,6 @@ with tab6:
                 fig_gauge.update_layout(height=220, margin=dict(t=20,b=0,l=20,r=20), **PLOT_THEME)
                 st.plotly_chart(fig_gauge, use_container_width=True)
 
-            # What-if recommendations
             st.markdown("### 💡 Retention Recommendations")
             tips = []
             if is_active == "No":
@@ -396,8 +385,5 @@ with tab6:
             for tip in tips:
                 st.markdown(f"- {tip}")
 
-# ── FOOTER ────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown("<div style='text-align:center; color:#555; font-size:13px;'>🏦 Customer Segmentation & Churn Pattern Analytics in European Banking &nbsp;|&nbsp; Unified Mentor Internship &nbsp;|&nbsp; Model: Gradient Boosting 86.8% Accuracy</div>", unsafe_allow_html=True)
-
-
