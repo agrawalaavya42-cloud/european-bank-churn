@@ -189,8 +189,6 @@ with tab3:
         gender_data = dff.groupby('Gender', observed=True)['Exited'].mean().reset_index()
     gender_data.columns = ['Gender', 'Exited']
     gender_data['ChurnRate'] = gender_data['Exited'] * 100
-        gender_data = dff.groupby('Gender')['Exited'].mean().reset_index()
-        gender_data['ChurnRate'] = gender_data['Exited'] * 100
         fig = px.bar(gender_data, x='Gender', y='ChurnRate', color='Gender',
                      color_discrete_map={'Female': COLORS['purple'], 'Male': COLORS['teal']},
                      text=gender_data['ChurnRate'].apply(lambda x: f'{x:.1f}%'), title='Churn Rate by Gender')
@@ -199,9 +197,8 @@ with tab3:
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-       gender_data = dff.groupby('Gender', observed=True)['Exited'].mean().reset_index()
-    gender_data.columns = ['Gender', 'Exited']
-    gender_data['ChurnRate'] = gender_data['Exited'] * 100
+        age_data = dff.groupby('AgeGroup', observed=True)['Exited'].mean().reset_index()
+        age_data['ChurnRate'] = age_data['Exited'] * 100
         fig2 = px.bar(age_data, x='AgeGroup', y='ChurnRate', color='ChurnRate',
                       color_continuous_scale=['#21C354','#FFA62B','#FF4B4B'],
                       text=age_data['ChurnRate'].apply(lambda x: f'{x:.1f}%'), title='Churn Rate by Age Group')
@@ -210,9 +207,8 @@ with tab3:
         st.plotly_chart(fig2, use_container_width=True)
 
     with col3:
-        gender_data = dff.groupby('Gender', observed=True)['Exited'].mean().reset_index()
-    gender_data.columns = ['Gender', 'Exited']
-    gender_data['ChurnRate'] = gender_data['Exited'] * 100
+        credit_data = dff.groupby('CreditBand', observed=True)['Exited'].mean().reset_index()
+        credit_data['ChurnRate'] = credit_data['Exited'] * 100
         fig3 = px.bar(credit_data, x='CreditBand', y='ChurnRate', color='ChurnRate',
                       color_continuous_scale=['#FF4B4B','#FFA62B','#21C354'],
                       text=credit_data['ChurnRate'].apply(lambda x: f'{x:.1f}%'), title='Churn by Credit Band')
