@@ -54,27 +54,27 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler, LabelEncoder
-    
+
     df_train = pd.read_csv("European_Bank.csv")
     df_train = df_train.drop(columns=['CustomerId','Surname','Year'], errors='ignore')
-    
+
     le = LabelEncoder()
     df_train['Geography_enc'] = le.fit_transform(df_train['Geography'])
     df_train['Gender_enc']    = le.fit_transform(df_train['Gender'])
-    
+
     features = ['CreditScore','Geography_enc','Gender_enc','Age','Tenure',
                 'Balance','NumOfProducts','HasCrCard','IsActiveMember','EstimatedSalary']
     X = df_train[features]
     y = df_train['Exited']
-    
+
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    
-    model = GradientBoostingClassifier(n_estimators=100, random_state=42)
+
+    model = LogisticRegression(max_iter=1000, random_state=42)
     model.fit(X_scaled, y)
-    
+
     return model, scaler
 
 df = load_data()
@@ -99,7 +99,7 @@ with st.sidebar:
     selected_credit  = st.selectbox("💳 Credit Band",     ['All'] + list(df['CreditBand'].cat.categories))
     selected_balance = st.selectbox("💰 Balance Segment", ['All'] + list(df['BalanceSegment'].cat.categories))
     st.markdown("---")
-    st.info("**Project:** Customer Segmentation & Churn Analytics\n\n**Model:** Gradient Boosting (86.8% accuracy)\n\n**Source:** Unified Mentor Internship")
+    st.info("**Project:** Customer Segmentation & Churn Analytics\n\n**Model:** Logistic Regression (80.5% accuracy)\n\n**Source:** Unified Mentor Internship")
 
 dff = df.copy()
 if selected_geo     != 'All': dff = dff[dff['Geography']      == selected_geo]
@@ -296,7 +296,7 @@ with tab5:
 
 with tab6:
     st.markdown('<div class="section-header">🤖 AI-Powered Churn Predictor</div>', unsafe_allow_html=True)
-    st.markdown("Enter a customer's details below to instantly predict their churn risk using our **Gradient Boosting model (86.8% accuracy, ROC-AUC 86.7%)**.")
+    st.markdown("Enter a customer's details below to instantly predict their churn risk using our **ML classification model**.")
 
     col1, col2, col3 = st.columns(3)
 
@@ -386,4 +386,4 @@ with tab6:
                 st.markdown(f"- {tip}")
 
 st.markdown("---")
-st.markdown("<div style='text-align:center; color:#555; font-size:13px;'>🏦 Customer Segmentation & Churn Pattern Analytics in European Banking &nbsp;|&nbsp; Unified Mentor Internship &nbsp;|&nbsp; Model: Gradient Boosting 86.8% Accuracy</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center; color:#555; font-size:13px;'>🏦 Customer Segmentation & Churn Pattern Analytics in European Banking &nbsp;|&nbsp; Unified Mentor Internship &nbsp;|&nbsp; AI-Powered Churn Predictor</div>", unsafe_allow_html=True)
